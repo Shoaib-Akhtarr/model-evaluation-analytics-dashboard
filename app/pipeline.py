@@ -14,9 +14,9 @@ class MLModelPipeline:
     def __init__(self):
         self.scaler = StandardScaler()
         self.models = {
-            "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
+            "Random Forest": RandomForestClassifier(n_estimators=100, class_weight="balanced", random_state=42),
             "Gradient Boosting": GradientBoostingClassifier(random_state=42),
-            "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42)
+            "Logistic Regression": LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
         }
 
     def generate_synthetic_dataset(self, n_samples: int = 1000) -> pd.DataFrame:
@@ -25,18 +25,18 @@ class MLModelPipeline:
         data = {
             "account_age_months": np.random.randint(1, 60, n_samples),
             "monthly_usage_gb": np.random.exponential(50, n_samples),
-            "support_tickets_filed": np.random.poisson(2, n_samples),
+            "support_tickets_filed": np.random.poisson(2.5, n_samples),
             "avg_latency_ms": np.random.normal(120, 25, n_samples),
             "billing_amount_usd": np.random.normal(250, 75, n_samples)
         }
         df = pd.DataFrame(data)
-        # Target: probability of churn or upgrade
+        # Target: probability of churn
         churn_prob = (
-            (df["support_tickets_filed"] > 3).astype(int) * 0.4 +
-            (df["avg_latency_ms"] > 140).astype(int) * 0.3 +
-            (df["account_age_months"] < 6).astype(int) * 0.2
+            (df["support_tickets_filed"] >= 3).astype(int) * 0.45 +
+            (df["avg_latency_ms"] > 130).astype(int) * 0.35 +
+            (df["account_age_months"] < 12).astype(int) * 0.25
         )
-        df["target_churn"] = (churn_prob + np.random.normal(0, 0.1, n_samples) > 0.45).astype(int)
+        df["target_churn"] = (churn_prob + np.random.normal(0, 0.08, n_samples) > 0.45).astype(int)
         return df
 
     def evaluate_all(self, df: pd.DataFrame, target_col: str = "target_churn") -> Dict[str, Dict[str, Any]]:
